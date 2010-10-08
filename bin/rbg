@@ -2,7 +2,12 @@
 require 'rbg'
 
 begin
-  Rbg.start(ARGV.first, {:background => ARGV.include?('-D'), :environment => nil})
+  if index = ARGV.index('-E')
+    environment = ARGV[index + 1]
+  else
+    environment = nil
+  end
+  Rbg.start(ARGV.first, {:background => ARGV.include?('-D'), :environment => environment})
 rescue Rbg::Error => e
   $stderr.puts "!!! #{e.message}"
   Process.exit(1)

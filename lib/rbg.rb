@@ -89,7 +89,7 @@ module Rbg
       end
       
       # Print some debug info and save the pid
-      puts "Spawned: #{self.config.name}[#{i}] as PID #{pid}"
+      puts "Spawned '#{self.config.name}[#{i}]' as PID #{pid}"
       STDOUT.flush
       
       # Detach to eliminate Zombie processes later
@@ -99,7 +99,7 @@ module Rbg
       self.child_processes << pid
     end
     
-    # Kill all children
+    # Kill all child processes
     def kill_child_processes
       puts 'Killing child processes...'
       STDOUT.flush
@@ -125,7 +125,8 @@ module Rbg
       # Set the process name
       $0="#{self.config.name}[M]"
       
-      # Fork some child processes
+      # Fork a Parent process
+      # This will load the before_fork in a clean process then fork the script as required
       self.start_parent
       
       # If we get a USR1, send the existing workers a TERM before starting some new ones
@@ -172,13 +173,14 @@ module Rbg
     def start(config_file, options = {})
       options[:background]  ||= false
       options[:environment] ||= "development"
-      
+      $rbg_env = options[:environment].dup
+            
       # Define the config file then load it
       self.config_file = config_file
       self.load_config
       
+      # Initialize child process array
       self.child_processes = Array.new
-      self.command = $0.to_a + ARGV
       
       if options[:background]
         # Ignore input and log to a file

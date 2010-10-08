@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+require 'rbg'
+
+begin
+  Rbg.start(ARGV.first, {:background => ARGV.include?('-D'), :environment => nil})
+rescue Rbg::Error => e
+  $stderr.puts "!!! #{e.message}"
+  Process.exit(1)
+end

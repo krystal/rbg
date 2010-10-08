@@ -1,15 +1,17 @@
 Rbg.config.tap do |config|
-  config.name = "key-server"
-  config.script = "/blah/blah/blah.rb"
-  config.log_path = "/tmp/keyserver.rb"
-  config.pid_path = "/tmp/keyserver.pid"
+
+  config.name = "example-job"
+  config.script = "example-job.rb"
+  config.log_path = "/tmp/example.log"
+  config.pid_path = "/tmp/example.pid"
   config.workers = 4
 
   config.before_fork do
-    require 'rails'
+    $n = 200
   end
   
   config.after_fork do
-    ActiveRecord::Base.establish_connection
+    puts $n
   end
+
 end

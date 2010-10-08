@@ -16,10 +16,6 @@ module Rbg
     ## Number of workers to start
     attr_accessor :workers
     
-    attr_reader :before_fork
-    
-    attr_reader :after_fork
-    
     ## Block of code to be executed in the master process before the process
     ## has been forked.
     def before_fork(&block)

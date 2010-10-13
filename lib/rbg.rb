@@ -187,6 +187,7 @@ module Rbg
         STDIN.reopen('/dev/null')
         if self.config.log_path
           STDOUT.reopen(self.config.log_path, 'a')
+          STDERR.reopen(self.config.log_path, 'a')
         else
           raise Error, "Log location not specified in '#{config_file}'"
         end

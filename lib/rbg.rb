@@ -174,7 +174,7 @@ module Rbg
       options[:background]  ||= false
       options[:environment] ||= "development"
       $rbg_env = options[:environment].dup
-            
+      
       # Define the config file then load it
       self.config_file = config_file
       self.load_config
@@ -183,27 +183,73 @@ module Rbg
       self.child_processes = Array.new
       
       if options[:background]
-        # Ignore input and log to a file
-        STDIN.reopen('/dev/null')
-        if self.config.log_path
-          STDOUT.reopen(self.config.log_path, 'a')
-          STDERR.reopen(self.config.log_path, 'a')
-        else
-          raise Error, "Log location not specified in '#{config_file}'"
-        end
         # Fork the master control process and return to a shell
         master_pid = fork do
+          # Ignore input and log to a file
+          STDIN.reopen('/dev/null')
+          if self.config.log_path
+            STDOUT.reopen(self.config.log_path, 'a')
+            STDERR.reopen(self.config.log_path, 'a')
+          else
+            raise Error, "Log location not specified in '#{config_file}'"
+          end
+          
           self.master_process
         end
+        
         # Ensure the process is properly backgrounded
         Process.detach(master_pid)
         if self.config.pid_path
           File.open(self.config.pid_path, 'w') {|f| f.write(master_pid) }
         end
+        
+        puts "Master started as PID #{master_pid}"
       else
         # Run using existing STDIN / STDOUT
-        # This might be a user terminal, or an already re-opened STDOUT
         self.master_process
+      end
+    end
+    
+    # Get the PID from the pidfile defined in the config
+    def pid_from_file
+      raise Error, "PID not defined in '#{config_file}'" unless self.config.pid_path
+      begin
+        pid = File.read(self.config.pid_path).strip.to_i
+      rescue
+        raise Error, "PID file not found"
+      end
+      return pid
+    end
+    
+    # Stop the running instance
+    def stop(config_file)
+      # Define the config file then load it
+      self.config_file = config_file
+      self.load_config
+      
+      pid = self.pid_from_file
+      
+      begin
+        Process.kill('TERM', pid)
+        puts "Sent TERM to PID #{pid}"
+      rescue
+        raise Error, "Process #{pid} not found"
+      end
+    end
+    
+    # Reload the running instance
+    def reload(config_file)
+      # Define the config file then load it
+      self.config_file = config_file
+      self.load_config
+      
+      pid = self.pid_from_file
+      
+      begin
+        Process.kill('USR1', pid)
+        puts "Sent USR1 to PID #{pid}"
+      rescue
+        raise Error, "Process #{pid} not found"
       end
     end
     

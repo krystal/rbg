@@ -1,16 +1,37 @@
 #!/usr/bin/env ruby
 require 'rbg'
 
+def die
+    puts "Usage: " + $0 + " run|start|stop|reload -c config_file [-E environment]"
+    Process.exit(1)
+end
+
 begin
-  if index = ARGV.index('-E')
-    environment = ARGV[index + 1]
-  else
-    environment = nil
+  command = nil
+  while arg = ARGV.shift
+    case arg
+    when '-c'
+      config_file = ARGV.shift
+    when '-E'
+      environment = ARGV.shift
+    else
+      command = arg
+    end
   end
-  if ARGV.empty?
-    puts "Usage: " + $0 + " config_file [-D] [-E environment]"
+  
+  die unless config_file
+  
+  case command
+  when 'run'
+    Rbg.start(config_file, {:background => false, :environment => environment})
+  when 'start'
+    Rbg.start(config_file, {:background => true, :environment => environment})
+  when 'stop'
+    Rbg.stop(config_file)
+  when 'reload'
+    Rbg.reload(config_file)
   else
-    Rbg.start(ARGV.first, {:background => ARGV.include?('-D'), :environment => environment})
+    die
   end
 rescue Rbg::Error => e
   $stderr.puts "!!! #{e.message}"

@@ -25,7 +25,7 @@ module Rbg
         self.child_processes = Array.new
 
         # Set the process name (Parent)
-        $0="#{self.config.name}[P]"
+        $0="#{self.config.name}[Parent]"
 
         # Debug information
         puts "New parent process: #{Process.pid}"
@@ -55,12 +55,26 @@ module Rbg
         Signal.trap('INT', proc {})
         
         # Parent loop, the purpose of this is simply to do nothing until we get a signal
+        # We will exit if all child processes die
         # We may add memory management code here in the future
         loop do
-          sleep 1
+          sleep 2
+          self.child_processes.dup.each do |p|
+            begin
+              Process.getpgid( p )
+            rescue Errno::ESRCH
+              puts "Child process #{p} has died"
+              child_processes.delete(p)
+            end
+          end
+          if child_processes.empty?
+            puts "All child processes died, exiting parent"
+            Process.exit(0)
+          end
         end
-        
       end
+      # Ensure the new parent is detached
+      Process.detach(self.child_processes.last)
     end
     
     # Wrapper to fork multiple workers
@@ -123,7 +137,7 @@ module Rbg
       STDOUT.flush
       
       # Set the process name
-      $0="#{self.config.name}[M]"
+      $0="#{self.config.name}[Master]"
       
       # Fork a Parent process
       # This will load the before_fork in a clean process then fork the script as required
@@ -154,9 +168,17 @@ module Rbg
         Process.exit(0)
       })
       
-      # Main loop, the purpose of this is simply to do nothing until we get a signal
+      # Main loop, we mostly idle, but check if the parent we created has died and exit
       loop do
-        sleep 1
+        sleep 2
+        self.child_processes.each do |p|
+          begin
+            Process.getpgid( p )
+          rescue Errno::ESRCH
+            puts "Parent process #{p} has died, exiting master"
+            Process.exit(0)
+          end
+        end
       end
     end
     
@@ -178,6 +200,18 @@ module Rbg
       # Define the config file then load it
       self.config_file = config_file
       self.load_config
+      
+      # If the PID file is set and exists, check that the process is not running
+      if self.config.pid_path and File.exists?(self.config.pid_path)
+        oldpid = File.read(self.config.pid_path)
+        begin
+          Process.getpgid( oldpid.to_i )
+          raise Error, "Process already running! PID #{oldpid}"
+        rescue Errno::ESRCH
+          # No running process
+          false
+        end
+      end
       
       # Initialize child process array
       self.child_processes = Array.new

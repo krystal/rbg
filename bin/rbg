@@ -27,9 +27,9 @@ begin
   when 'start'
     Rbg.start(config_file, {:background => true, :environment => environment})
   when 'stop'
-    Rbg.stop(config_file)
+    Rbg.stop(config_file, {:environment => environment})
   when 'reload'
-    Rbg.reload(config_file)
+    Rbg.reload(config_file, {:environment => environment})
   else
     die
   end

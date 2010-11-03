@@ -256,7 +256,10 @@ module Rbg
     end
     
     # Stop the running instance
-    def stop(config_file)
+    def stop(config_file, options = {})
+      options[:environment] ||= "development"
+      $rbg_env = options[:environment].dup
+
       # Define the config file then load it
       self.config_file = config_file
       self.load_config
@@ -272,7 +275,10 @@ module Rbg
     end
     
     # Reload the running instance
-    def reload(config_file)
+    def reload(config_file, options = {})
+      options[:environment] ||= "development"
+      $rbg_env = options[:environment].dup
+
       # Define the config file then load it
       self.config_file = config_file
       self.load_config

@@ -98,8 +98,11 @@ module Rbg
         # Execure before_fork code
         self.config.after_fork.call
         
-        # The actual code to run
-        require self.config.script
+        if self.config.script.is_a?(String)
+          require self.config.script
+        elsif self.config.script.is_a?(Proc)
+          self.config.script.call
+        end
       end
       
       # Print some debug info and save the pid

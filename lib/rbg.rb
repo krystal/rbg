@@ -146,13 +146,13 @@ module Rbg
       # This will load the before_fork in a clean process then fork the script as required
       self.start_parent
       
-      # If we get a USR1, send the existing workers a TERM before starting some new ones
+      # A restart is not required yet...
+      restart_needed = false
+      
+      # If we get a USR1, set this process as waiting for a restart
       Signal.trap("USR1", proc {
         puts "Master got a USR1."
-        STDOUT.flush
-        self.kill_child_processes
-        load_config
-        self.start_parent
+        restart_needed = true
       })
       
       # If we get a TERM, send the existing workers a TERM before bowing out
@@ -174,6 +174,14 @@ module Rbg
       # Main loop, we mostly idle, but check if the parent we created has died and exit
       loop do
         sleep 2
+        if restart_needed
+          STDOUT.flush
+          self.kill_child_processes
+          load_config
+          self.start_parent
+          restart_needed = false
+        end
+        
         self.child_processes.each do |p|
           begin
             Process.getpgid( p )

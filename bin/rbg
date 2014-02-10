@@ -2,8 +2,8 @@
 require 'rbg'
 
 def die
-    puts "Usage: " + $0 + " run|start|stop|reload -c config_file [-E environment]"
-    Process.exit(1)
+  puts "Usage: rbg run|start|stop|reload [-c config_file] [-E environment]"
+  Process.exit(1)
 end
 
 begin

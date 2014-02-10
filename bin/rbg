@@ -19,6 +19,10 @@ begin
     end
   end
   
+  if config_file.nil?
+    config_file = "ProcessFile"
+  end
+  
   die unless config_file
   
   case command

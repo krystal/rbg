@@ -32,7 +32,9 @@ module Rbg
         STDOUT.flush
         
         # Run the before_fork function
-        self.config.before_fork.call
+        if config.before_fork.is_a?(Proc)
+          self.config.before_fork.call
+        end
         
         # Fork an appropriate number of workers
         self.fork_workers(self.config.workers)
@@ -96,7 +98,9 @@ module Rbg
         Signal.trap('TERM', proc {Process.exit(0)})
         
         # Execure before_fork code
-        self.config.after_fork.call
+        if config.after_fork.is_a?(Proc)
+          self.config.after_fork.call
+        end
         
         if self.config.script.is_a?(String)
           require self.config.script

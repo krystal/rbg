@@ -32,7 +32,7 @@ begin
     Rbg.start(config_file, {:background => true, :environment => environment})
   when 'stop'
     Rbg.stop(config_file, {:environment => environment})
-  when 'reload'
+  when 'reload', 'restart'
     Rbg.reload(config_file, {:environment => environment})
   else
     die

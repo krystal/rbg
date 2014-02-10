@@ -20,8 +20,14 @@ begin
   end
   
   if config_file.nil?
-    config_file = "ProcessFile"
+    if File.exist?('Rbgfile')
+      config_file = "Rbgfile"
+    elsif File.exist?('ProcessFile')
+      config_file = "ProcessFile"
+    end
   end
+  
+  
   
   die unless config_file
   

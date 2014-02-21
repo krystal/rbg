@@ -66,9 +66,17 @@ module Rbg
               Process.getpgid(opts[:pid])
             rescue Errno::ESRCH
               puts "Child process #{config.name}[#{id}] has died (from PID #{opts[:pid]})"
-              child_processes.delete(id)
+              child_processes[id][:pid] = nil
+              
+              if config.respawn_limit > opts[:respawns]
+                child_processes[id][:respawns] += 1
+                fork_worker(id)
+              else
+                child_processes.delete(id)
+              end
             end
           end
+          
           if child_processes.empty?
             puts "All child processes died, exiting parent"
             Process.exit(0)
@@ -120,7 +128,9 @@ module Rbg
       Process.detach(pid)
       
       # Save the worker PID into the Parent's child process list
-      self.child_processes[id] = {:pid => pid, :respawns => 0}
+      self.child_processes[id]            ||= {}
+      self.child_processes[id][:pid]      ||= pid
+      self.child_processes[id][:respawns] ||= 0
     end
     
     # Kill all child processes

@@ -20,9 +20,9 @@ module Rbg
     # and then forking the worker processes.
     def start_parent
       # Record the PID of this parent in the Master
-      self.child_processes << fork do
+      parent_pid = fork do
         # Clear the child process list as this fork doesn't have any children yet
-        self.child_processes = Array.new
+        self.child_processes = Hash.new
 
         # Set the process name (Parent)
         $0="#{self.config.name}[Parent]"
@@ -61,12 +61,12 @@ module Rbg
         # We may add memory management code here in the future
         loop do
           sleep 2
-          self.child_processes.dup.each do |p|
+          child_processes.dup.each do |id, pid|
             begin
-              Process.getpgid( p )
+              Process.getpgid(pid)
             rescue Errno::ESRCH
-              puts "Child process #{p} has died"
-              child_processes.delete(p)
+              puts "Child process #{config.name}##{id} has died (from PID #{pid})"
+              child_processes.delete(pid)
             end
           end
           if child_processes.empty?
@@ -75,8 +75,12 @@ module Rbg
           end
         end
       end
+      
+      puts parent_pid
+      # Store the PID
+      child_processes[0] = parent_pid
       # Ensure the new parent is detached
-      Process.detach(self.child_processes.last)
+      Process.detach(parent_pid)
     end
     
     # Wrapper to fork multiple workers
@@ -90,7 +94,7 @@ module Rbg
     def fork_worker(i)
       pid = fork do
         # Set process name
-        $0="#{self.config.name}[#{i}]"
+        $0="#{config.name}.#{i}"
         
         # Ending workers on INT is not useful or desirable
         Signal.trap('INT', proc {})
@@ -110,31 +114,31 @@ module Rbg
       end
       
       # Print some debug info and save the pid
-      puts "Spawned '#{self.config.name}[#{i}]' as PID #{pid}"
+      puts "Spawned #{config.name}.#{i} (with PID #{pid})"
       STDOUT.flush
       
       # Detach to eliminate Zombie processes later
       Process.detach(pid)
       
       # Save the worker PID into the Parent's child process list
-      self.child_processes << pid
+      self.child_processes[i] = pid
     end
     
     # Kill all child processes
     def kill_child_processes
       puts 'Killing child processes...'
       STDOUT.flush
-      self.child_processes.each do |p|
-        puts "Killing: #{p}"
+      self.child_processes.each do |id, pid|
+        puts "Killing #{config.name}.#{id} (with PID #{pid})"
         STDOUT.flush
         begin
-          Process.kill('TERM', p)
+          Process.kill('TERM', pid)
         rescue
           puts "Process already gone away"
         end
       end
       # Clear the child process list because we just killed them all
-      self.child_processes = Array.new
+      self.child_processes = Hash.new
     end
     
     # This is the master process, it spawns some workers then loops
@@ -186,11 +190,11 @@ module Rbg
           restart_needed = false
         end
         
-        self.child_processes.each do |p|
+        self.child_processes.each do |id, pid|
           begin
-            Process.getpgid( p )
+            Process.getpgid(pid)
           rescue Errno::ESRCH
-            puts "Parent process #{p} has died, exiting master"
+            puts "Parent process #{config.name}.#{id} has died (from PID #{pid}), exiting master"
             Process.exit(0)
           end
         end
@@ -229,7 +233,7 @@ module Rbg
       end
       
       # Initialize child process array
-      self.child_processes = Array.new
+      self.child_processes = Hash.new
       
       if options[:background]
         # Fork the master control process and return to a shell

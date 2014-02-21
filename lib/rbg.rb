@@ -65,7 +65,7 @@ module Rbg
             begin
               Process.getpgid(pid)
             rescue Errno::ESRCH
-              puts "Child process #{config.name}##{id} has died (from PID #{pid})"
+              puts "Child process #{config.name}[#{id}] has died (from PID #{pid})"
               child_processes.delete(pid)
             end
           end
@@ -91,10 +91,10 @@ module Rbg
     end
     
     # Fork a single worker
-    def fork_worker(i)
+    def fork_worker(id)
       pid = fork do
         # Set process name
-        $0="#{config.name}.#{i}"
+        $0="#{config.name}[#{id}]"
         
         # Ending workers on INT is not useful or desirable
         Signal.trap('INT', proc {})
@@ -114,14 +114,14 @@ module Rbg
       end
       
       # Print some debug info and save the pid
-      puts "Spawned #{config.name}.#{i} (with PID #{pid})"
+      puts "Spawned #{config.name}[#{id}] (with PID #{pid})"
       STDOUT.flush
       
       # Detach to eliminate Zombie processes later
       Process.detach(pid)
       
       # Save the worker PID into the Parent's child process list
-      self.child_processes[i] = pid
+      self.child_processes[id] = pid
     end
     
     # Kill all child processes
@@ -129,7 +129,7 @@ module Rbg
       puts 'Killing child processes...'
       STDOUT.flush
       self.child_processes.each do |id, pid|
-        puts "Killing #{config.name}.#{id} (with PID #{pid})"
+        puts "Killing #{config.name}[#{id}] (with PID #{pid})"
         STDOUT.flush
         begin
           Process.kill('TERM', pid)
@@ -194,7 +194,7 @@ module Rbg
           begin
             Process.getpgid(pid)
           rescue Errno::ESRCH
-            puts "Parent process #{config.name}.#{id} has died (from PID #{pid}), exiting master"
+            puts "Parent process #{config.name}[#{id}] has died (from PID #{pid}), exiting master"
             Process.exit(0)
           end
         end

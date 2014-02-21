@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'rbg'
-  s.version = '1.0.2'
+  s.version = '1.1.0'
   s.summary = 'Ruby Backgrounder allows multiple copies of ruby scripts to be run in the background and restarted'
   
   s.platform = Gem::Platform::RUBY

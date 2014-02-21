@@ -61,12 +61,12 @@ module Rbg
         # We may add memory management code here in the future
         loop do
           sleep 2
-          child_processes.dup.each do |id, pid|
+          child_processes.dup.each do |id, opts|
             begin
-              Process.getpgid(pid)
+              Process.getpgid(opts[:pid])
             rescue Errno::ESRCH
-              puts "Child process #{config.name}[#{id}] has died (from PID #{pid})"
-              child_processes.delete(pid)
+              puts "Child process #{config.name}[#{id}] has died (from PID #{opts[:pid]})"
+              child_processes.delete(id)
             end
           end
           if child_processes.empty?
@@ -76,9 +76,8 @@ module Rbg
         end
       end
       
-      puts parent_pid
-      # Store the PID
-      child_processes[0] = parent_pid
+      # Store the PID for the parent
+      child_processes[0] = {:pid => parent_pid, :respawns => 0}
       # Ensure the new parent is detached
       Process.detach(parent_pid)
     end
@@ -121,18 +120,18 @@ module Rbg
       Process.detach(pid)
       
       # Save the worker PID into the Parent's child process list
-      self.child_processes[id] = pid
+      self.child_processes[id] = {:pid => pid, :respawns => 0}
     end
     
     # Kill all child processes
     def kill_child_processes
       puts 'Killing child processes...'
       STDOUT.flush
-      self.child_processes.each do |id, pid|
-        puts "Killing #{config.name}[#{id}] (with PID #{pid})"
+      self.child_processes.each do |id, opts|
+        puts "Killing #{config.name}[#{id}] (with PID #{opts[:pid]})"
         STDOUT.flush
         begin
-          Process.kill('TERM', pid)
+          Process.kill('TERM', opts[:pid])
         rescue
           puts "Process already gone away"
         end
@@ -190,11 +189,11 @@ module Rbg
           restart_needed = false
         end
         
-        self.child_processes.each do |id, pid|
+        self.child_processes.each do |id, opts|
           begin
-            Process.getpgid(pid)
+            Process.getpgid(opts[:pid])
           rescue Errno::ESRCH
-            puts "Parent process #{config.name}[#{id}] has died (from PID #{pid}), exiting master"
+            puts "Parent process #{config.name}[#{id}] has died (from PID #{opts[:pid]}), exiting master"
             Process.exit(0)
           end
         end

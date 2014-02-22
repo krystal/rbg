@@ -144,11 +144,9 @@ module Rbg
       self.child_processes[id][:started_at]         = Time.now
     end
     
-    # Kill all child processes
-    def kill_child_processes
-      puts 'Killing child processes...'
-      STDOUT.flush
-      self.child_processes.each do |id, opts|
+    # Kill a given child process
+    def kill_child_process(id)
+      if opts = self.child_processes[id]
         puts "Killing #{config.name}[#{id}] (with PID #{opts[:pid]})"
         STDOUT.flush
         begin
@@ -157,7 +155,13 @@ module Rbg
           puts "Process already gone away"
         end
       end
-      # Clear the child process list because we just killed them all
+    end
+    
+    # Kill all child processes
+    def kill_child_processes
+      puts 'Killing child processes...'
+      STDOUT.flush
+      self.child_processes.keys.each { |id| kill_child_process(id) }
       self.child_processes = Hash.new
     end
     

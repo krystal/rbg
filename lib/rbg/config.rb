@@ -7,7 +7,8 @@ module Rbg
     attr_accessor :log_path
     attr_accessor :pid_path
     attr_accessor :workers
-    attr_accessor :respawn_limit
+    attr_accessor :respawn
+    attr_accessor :respawn_limits
     
     def root
       @root || File.expand_path('./')
@@ -25,8 +26,12 @@ module Rbg
       block_given? ? @script = block : @script
     end
     
-    def respawn_limit
-      @respawn_limit || 0
+    def respawn
+      @respawn || false
+    end
+    
+    def respawn_limits
+      @respawn_limits || [5, 30]
     end
     
     def before_fork(&block)

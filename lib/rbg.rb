@@ -68,9 +68,19 @@ module Rbg
               puts "Child process #{config.name}[#{id}] has died (from PID #{opts[:pid]})"
               child_processes[id][:pid] = nil
               
-              if config.respawn_limit > opts[:respawns]
-                child_processes[id][:respawns] += 1
-                fork_worker(id)
+              if config.respawn
+                if opts[:started_at] > Time.now - config.respawn_limits[1]
+                  if opts[:respawns] >= config.respawn_limits[0]
+                    puts "Process #{config.name}[#{id}] has instantly respawned #{opts[:respawns]} times. It won't be respawned again."
+                    child_processes.delete(id)
+                  else
+                    child_processes[id][:respawns] += 1
+                    fork_worker(id)
+                  end
+                else
+                  child_processes[id][:respawns] = 0
+                  fork_worker(id)
+                end
               else
                 child_processes.delete(id)
               end
@@ -128,9 +138,10 @@ module Rbg
       Process.detach(pid)
       
       # Save the worker PID into the Parent's child process list
-      self.child_processes[id]            ||= {}
-      self.child_processes[id][:pid]      ||= pid
-      self.child_processes[id][:respawns] ||= 0
+      self.child_processes[id]                    ||= {}
+      self.child_processes[id][:pid]              ||= pid
+      self.child_processes[id][:respawns]         ||= 0
+      self.child_processes[id][:started_at]         = Time.now
     end
     
     # Kill all child processes

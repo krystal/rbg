@@ -16,7 +16,7 @@ stopping & restarting a background process.
 Just add the gem to your Gemfile.
 
 ```ruby
-gem 'rbg', '~> 1.8.0'
+gem 'rbg', '~> 1.2.0'
 ```
 
 ## Setup

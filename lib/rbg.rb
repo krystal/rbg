@@ -278,11 +278,10 @@ module Rbg
     def pid_from_file
       raise Error, "PID not defined in '#{config_file}'" unless self.config.pid_path
       begin
-        pid = File.read(self.config.pid_path).strip.to_i
+        File.read(self.config.pid_path).strip.to_i
       rescue
         raise Error, "PID file not found"
       end
-      return pid
     end
     
     # Stop the running instance

@@ -9,6 +9,7 @@ module Rbg
     attr_accessor :workers
     attr_accessor :respawn
     attr_accessor :respawn_limits
+    attr_accessor :memory_limit
     
     def root
       @root || File.expand_path('./')
@@ -32,6 +33,10 @@ module Rbg
     
     def respawn_limits
       @respawn_limits || [5, 30]
+    end
+    
+    def memory_limit
+      @memory_limit || nil
     end
     
     def before_fork(&block)

@@ -63,7 +63,18 @@ module Rbg
           sleep 2
           child_processes.dup.each do |id, opts|
             begin
+              
               Process.getpgid(opts[:pid])
+              
+              if config.memory_limit
+                # Lookup the memory usge for this PID
+                memory_usage = `ps -o rss= -p #{opts[:pid]}`.strip.to_i / 1024
+                if memory_usage > config.memory_limit
+                  puts "#{self.config.name}[#{id}] is using #{memory_usage}MB of memory (limit: #{config.memory_limit}MB). It will be killed."
+                  kill_child_process(id)
+                end
+              end
+              
             rescue Errno::ESRCH
               puts "Child process #{config.name}[#{id}] has died (from PID #{opts[:pid]})"
               child_processes[id][:pid] = nil
@@ -74,10 +85,12 @@ module Rbg
                     puts "Process #{config.name}[#{id}] has instantly respawned #{opts[:respawns]} times. It won't be respawned again."
                     child_processes.delete(id)
                   else
+                    puts "Process has died within #{config.respawn_limits[1]}s of the last spawn."
                     child_processes[id][:respawns] += 1
                     fork_worker(id)
                   end
                 else
+                  puts "Process was started more than #{config.respawn_limits[1]}s since the last spawn. Resetting spawn counter"
                   child_processes[id][:respawns] = 0
                   fork_worker(id)
                 end

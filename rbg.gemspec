@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'rbg'
-  s.version = '1.2.0'
+  s.version = '1.3.0'
   s.summary = 'Ruby Backgrounder allows multiple copies of ruby scripts to be run in the background and restarted'
   
   s.platform = Gem::Platform::RUBY
@@ -14,5 +14,7 @@ Gem::Specification.new do |s|
   s.author = 'Charlie Smurthwaite'
   s.email = 'charlie@atechmedia.com'
   s.homepage = 'http://www.atechmedia.com'
+  
+  s.add_dependency "mono_logger", ">= 1.1"
 end
 

@@ -16,6 +16,11 @@ module Rbg
       @config ||= Rbg::Config.new
     end
     
+    # Return a logger object for this application
+    def logger
+      self.config.logger
+    end
+    
     # Creates a 'parent' process. This is responsible for executing 'before_fork'
     # and then forking the worker processes.
     def start_parent
@@ -28,7 +33,7 @@ module Rbg
         $0="#{self.config.name}[Parent]"
 
         # Debug information
-        puts "New parent process: #{Process.pid}"
+        logger.info "New parent process: #{Process.pid}"
         STDOUT.flush
         
         # Run the before_fork function
@@ -42,7 +47,7 @@ module Rbg
         # If we get a TERM, send the existing workers a TERM then exit
         Signal.trap("TERM", proc {
           # Debug output
-          puts "Parent got a TERM."
+          logger.info "Parent got a TERM."
           STDOUT.flush
 
           # Send TERM to workers
@@ -70,27 +75,27 @@ module Rbg
                 # Lookup the memory usge for this PID
                 memory_usage = `ps -o rss= -p #{opts[:pid]}`.strip.to_i / 1024
                 if memory_usage > config.memory_limit
-                  puts "#{self.config.name}[#{id}] is using #{memory_usage}MB of memory (limit: #{config.memory_limit}MB). It will be killed."
+                  logger.info "#{self.config.name}[#{id}] is using #{memory_usage}MB of memory (limit: #{config.memory_limit}MB). It will be killed."
                   kill_child_process(id)
                 end
               end
               
             rescue Errno::ESRCH
-              puts "Child process #{config.name}[#{id}] has died (from PID #{opts[:pid]})"
+              logger.info "Child process #{config.name}[#{id}] has died (from PID #{opts[:pid]})"
               child_processes[id][:pid] = nil
               
               if config.respawn
                 if opts[:started_at] > Time.now - config.respawn_limits[1]
                   if opts[:respawns] >= config.respawn_limits[0]
-                    puts "Process #{config.name}[#{id}] has instantly respawned #{opts[:respawns]} times. It won't be respawned again."
+                    logger.info "Process #{config.name}[#{id}] has instantly respawned #{opts[:respawns]} times. It won't be respawned again."
                     child_processes.delete(id)
                   else
-                    puts "Process has died within #{config.respawn_limits[1]}s of the last spawn."
+                    logger.info "Process has died within #{config.respawn_limits[1]}s of the last spawn."
                     child_processes[id][:respawns] += 1
                     fork_worker(id)
                   end
                 else
-                  puts "Process was started more than #{config.respawn_limits[1]}s since the last spawn. Resetting spawn counter"
+                  logger.info "Process was started more than #{config.respawn_limits[1]}s since the last spawn. Resetting spawn counter"
                   child_processes[id][:respawns] = 0
                   fork_worker(id)
                 end
@@ -101,7 +106,7 @@ module Rbg
           end
           
           if child_processes.empty?
-            puts "All child processes died, exiting parent"
+            logger.info "All child processes died, exiting parent"
             Process.exit(0)
           end
         end
@@ -144,7 +149,7 @@ module Rbg
       end
       
       # Print some debug info and save the pid
-      puts "Spawned #{config.name}[#{id}] (with PID #{pid})"
+      logger.info "Spawned #{config.name}[#{id}] (with PID #{pid})"
       STDOUT.flush
       
       # Detach to eliminate Zombie processes later
@@ -160,19 +165,19 @@ module Rbg
     # Kill a given child process
     def kill_child_process(id)
       if opts = self.child_processes[id]
-        puts "Killing #{config.name}[#{id}] (with PID #{opts[:pid]})"
+        logger.info "Killing #{config.name}[#{id}] (with PID #{opts[:pid]})"
         STDOUT.flush
         begin
           Process.kill('TERM', opts[:pid])
         rescue
-          puts "Process already gone away"
+          logger.info "Process already gone away"
         end
       end
     end
     
     # Kill all child processes
     def kill_child_processes
-      puts 'Killing child processes...'
+      logger.info 'Killing child processes...'
       STDOUT.flush
       self.child_processes.keys.each { |id| kill_child_process(id) }
       self.child_processes = Hash.new
@@ -181,7 +186,7 @@ module Rbg
     # This is the master process, it spawns some workers then loops
     def master_process
       # Log the master PID
-      puts "New master process: #{Process.pid}"
+      logger.info "New master process: #{Process.pid}"
       STDOUT.flush
       
       # Set the process name
@@ -196,13 +201,13 @@ module Rbg
       
       # If we get a USR1, set this process as waiting for a restart
       Signal.trap("USR1", proc {
-        puts "Master got a USR1."
+        logger.info "Master got a USR1."
         restart_needed = true
       })
       
       # If we get a TERM, send the existing workers a TERM before bowing out
       Signal.trap("TERM", proc {
-        puts "Master got a TERM."
+        logger.info "Master got a TERM."
         STDOUT.flush
         kill_child_processes
         Process.exit(0)
@@ -210,7 +215,7 @@ module Rbg
       
       # INT is useful for when we don't want to background
       Signal.trap("INT", proc {
-        puts "Master got an INT."
+        logger.info "Master got an INT."
         STDOUT.flush
         kill_child_processes
         Process.exit(0)
@@ -231,7 +236,7 @@ module Rbg
           begin
             Process.getpgid(opts[:pid])
           rescue Errno::ESRCH
-            puts "Parent process #{config.name}[#{id}] has died (from PID #{opts[:pid]}), exiting master"
+            logger.info "Parent process #{config.name}[#{id}] has died (from PID #{opts[:pid]}), exiting master"
             Process.exit(0)
           end
         end
@@ -295,9 +300,10 @@ module Rbg
           File.open(self.config.pid_path, 'w') {|f| f.write(master_pid) }
         end
         
-        puts "Master started as PID #{master_pid}"
+        logger.info "Master started as PID #{master_pid}"
       else
-        # Run using existing STDIN / STDOUT
+        # Run using existing STDIN / STDOUT and set logger to use use STDOUT regardless
+        self.config.logger = MonoLogger.new(STDOUT)
         self.master_process
       end
     end

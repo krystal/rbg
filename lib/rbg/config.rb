@@ -1,3 +1,5 @@
+require 'mono_logger'
+
 module Rbg
   class Config
     
@@ -10,6 +12,7 @@ module Rbg
     attr_accessor :respawn
     attr_accessor :respawn_limits
     attr_accessor :memory_limit
+    attr_accessor :logger
     
     def root
       @root || File.expand_path('./')
@@ -45,6 +48,10 @@ module Rbg
     
     def after_fork(&block)
       block_given? ? @after_fork = block : @after_fork
+    end
+    
+    def logger
+      @logger ||= MonoLogger.new(self.log_path)
     end
     
   end

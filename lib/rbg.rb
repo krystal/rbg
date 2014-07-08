@@ -60,6 +60,7 @@ module Rbg
         # Ending parent processes on INT is not useful or desirable
         # especially when running in the foreground
         Signal.trap('INT', proc {})
+        Signal.trap('HUP', proc {})
         
         # Parent loop, the purpose of this is simply to do nothing until we get a signal
         # We will exit if all child processes die
@@ -133,6 +134,7 @@ module Rbg
         
         # Ending workers on INT is not useful or desirable
         Signal.trap('INT', proc {})
+        Signal.trap('HUP', proc {})
         # Restore normal behaviour
         Signal.trap('TERM', proc {Process.exit(0)})
         
@@ -220,6 +222,8 @@ module Rbg
         kill_child_processes
         Process.exit(0)
       })
+
+      Signal.trap('HUP', proc {})
       
       # Main loop, we mostly idle, but check if the parent we created has died and exit
       loop do

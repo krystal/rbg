@@ -44,7 +44,7 @@ begin
     die
   end
 rescue Rbg::Error => e
-  $stderr.puts "!!! #{e.message}"
+  Rbg.say "!!! #{e.message}"
   Process.exit(1)
 end
 

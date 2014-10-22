@@ -335,7 +335,7 @@ module Rbg
       
       begin
         Process.kill('TERM', pid)
-        puts "Sent TERM to PID #{pid}"
+        say "Sent TERM to PID #{pid}"
       rescue
         raise Error, "Process #{pid} not found"
       end
@@ -354,10 +354,15 @@ module Rbg
       
       begin
         Process.kill('USR1', pid)
-        puts "Sent USR1 to PID #{pid}"
+        say "Sent USR1 to PID #{pid}"
       rescue
         raise Error, "Process #{pid} not found"
       end
+    end
+    
+    def say(msg)
+      msg = "      #{msg}" if ENV['PROCMAN_ENABLED']
+      puts msg
     end
     
   end

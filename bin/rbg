@@ -7,15 +7,28 @@ def die
 end
 
 begin
-  command = nil
+  args = []
+  config_file = nil
+  environment = nil
+  
   while arg = ARGV.shift
     case arg
     when '-c'
       config_file = ARGV.shift
-    when '-E'
+    when '-E', '-e'
       environment = ARGV.shift
     else
-      command = arg
+      args << arg
+    end
+  end
+  
+  command = args[0]
+  if config_file.nil? && args[1]
+    [args[1], "./proceses/#{args[1]}.rb", "./config/processes/#{args[1]}.rb"].each do |loc|
+      if File.exist?(loc)
+        config_file = loc
+        break
+      end
     end
   end
   
@@ -26,8 +39,6 @@ begin
       config_file = "ProcessFile"
     end
   end
-  
-  
   
   die unless config_file
   

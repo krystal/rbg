@@ -10,7 +10,7 @@ begin
   args = []
   config_file = nil
   environment = nil
-  
+
   while arg = ARGV.shift
     case arg
     when '-c'
@@ -21,7 +21,7 @@ begin
       args << arg
     end
   end
-  
+
   command = args[0]
   if config_file.nil? && args[1]
     [args[1], "./proceses/#{args[1]}.rb", "./config/processes/#{args[1]}.rb"].each do |loc|
@@ -31,7 +31,7 @@ begin
       end
     end
   end
-  
+
   if config_file.nil?
     if File.exist?('Rbgfile')
       config_file = "Rbgfile"
@@ -39,9 +39,9 @@ begin
       config_file = "ProcessFile"
     end
   end
-  
+
   die unless config_file
-  
+
   case command
   when 'run'
     Rbg.start(config_file, {:background => false, :environment => environment})

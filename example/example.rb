@@ -16,7 +16,7 @@ Rbg.config.tap do |config|
   config.before_fork do
     require 'date'
   end
-  
+
   # Code to run after forking
   # This will often be: ActiveRecord::Base.establish_connection
   config.after_fork do
